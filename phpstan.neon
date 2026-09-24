@@ -1,0 +1,19 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+
+    level: 5
+
+    treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        - identifier: nullsafe.neverNull
+        - identifier: argument.unresolvableType
+        - '#Access to an undefined property App\\Http\\Resources\\.*#'
+        - '#Access to an undefined property App\\Models\\GiftRecord::\$total_amount#'
+        - '#Access to an undefined property App\\Models\\GiftRecord::\$entries_count#'
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::.*#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Model::.*#'

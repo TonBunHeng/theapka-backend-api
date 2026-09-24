@@ -1,0 +1,472 @@
+openapi: 3.0.3
+info:
+  title: TheapKa Online API
+  version: 1.0.0
+  description: >
+    Digital wedding invitation and wedding management platform for Cambodian couples.
+    Serves both the couple application (theapka-user) and staff administration (theapka-admin),
+    as well as public guest invitation pages.
+servers:
+  - url: http://localhost:8000/api
+    description: Local Development API
+  - url: https://api.theapka.com/api
+    description: Production API
+
+components:
+  securitySchemes:
+    SanctumAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: SanctumToken
+      description: Enter Bearer token issued by /api/auth/login or /api/auth/register
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Sokha & Bopha" }
+        email: { type: string, format: email, example: "couple@theapka.com" }
+        phone: { type: string, example: "+85512000003" }
+        role: { type: string, enum: [user, admin, super_admin], example: "user" }
+        permissions: { type: array, items: { type: string }, example: [] }
+        is_active: { type: boolean, example: true }
+        avatar_url: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    MeResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id: { type: integer, example: 1 }
+                name: { type: string, example: "Sokha & Bopha" }
+                email: { type: string, example: "couple@theapka.com" }
+                phone: { type: string, example: "+85512000003" }
+                avatar_url: { type: string, nullable: true }
+            role: { type: string, enum: [user, admin, super_admin], example: "user" }
+            permissions: { type: array, items: { type: string }, example: ["weddings.view"] }
+
+    Wedding:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        title: { type: string, example: "Sokha and Bopha Wedding" }
+        slug: { type: string, example: "sokha-bopha-2026" }
+        wedding_date: { type: string, format: date, example: "2026-11-20" }
+        venue_name: { type: string, example: "Sokha Hotel Phnom Penh" }
+        venue_address: { type: string, example: "Street 123, Phnom Penh" }
+        venue_map_url: { type: string, example: "https://maps.google.com/?q=..." }
+        timezone: { type: string, example: "Asia/Phnom_Penh" }
+        status: { type: string, enum: [draft, published, archived, suspended], example: "published" }
+        cover_image_url: { type: string, nullable: true }
+        details:
+          type: object
+          nullable: true
+          properties:
+            groom_name: { type: string, example: "Sokha Keo" }
+            bride_name: { type: string, example: "Bopha Chan" }
+            story: { type: string, example: "Our story..." }
+            dress_code: { type: string, example: "Traditional Khmer" }
+
+    Guest:
+      type: object
+      properties:
+        id: { type: integer, example: 10 }
+        name: { type: string, example: "Borey Kem" }
+        phone: { type: string, nullable: true, example: "+85512345678" }
+        group_id: { type: integer, nullable: true, example: 2 }
+        side: { type: string, enum: [groom, bride, mutual], example: "groom" }
+        seats: { type: integer, example: 2 }
+        token: { type: string, example: "a1b2c3d4e5f6..." }
+        rsvp_status: { type: string, enum: [pending, attending, declined, maybe], example: "pending" }
+        sent_at: { type: string, format: date-time, nullable: true }
+        opened_at: { type: string, format: date-time, nullable: true }
+
+    GiftRecord:
+      type: object
+      properties:
+        id: { type: integer, example: 101 }
+        client_uuid: { type: string, format: uuid, example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d" }
+        guest_id: { type: integer, nullable: true, example: 10 }
+        giver_name: { type: string, example: "Lok Ta Chea" }
+        amount: { type: number, format: float, example: 50.00 }
+        currency: { type: string, enum: [KHR, USD], example: "USD" }
+        method: { type: string, example: "cash" }
+        entry_type: { type: string, enum: [gift, correction], example: "gift" }
+        corrects_id: { type: integer, nullable: true, example: null }
+        recorded_by: { type: integer, example: 1 }
+        recorded_at: { type: string, format: date-time, example: "2026-11-20T12:00:00Z" }
+
+    GiftSummary:
+      type: object
+      properties:
+        USD: { type: number, example: 1500.00 }
+        KHR: { type: number, example: 2400000.00 }
+        total_entries: { type: integer, example: 45 }
+        by_currency:
+          type: object
+          properties:
+            USD:
+              type: object
+              properties:
+                currency: { type: string, example: "USD" }
+                total: { type: number, example: 1500.00 }
+                count: { type: integer, example: 20 }
+            KHR:
+              type: object
+              properties:
+                currency: { type: string, example: "KHR" }
+                total: { type: number, example: 2400000.00 }
+                count: { type: integer, example: 25 }
+
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string, example: "The given data was invalid." }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+paths:
+  /auth/login:
+    post:
+      summary: Login with email/phone and password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, example: "couple@theapka.com" }
+                password: { type: string, example: "Password123!" }
+                device_name: { type: string, example: "theapka_user_web" }
+      responses:
+        200:
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string, example: "1|sanctum_plain_token_value" }
+                      user: { $ref: '#/components/schemas/User' }
+                      role: { type: string, example: "user" }
+                      permissions: { type: array, items: { type: string } }
+        422:
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/register:
+    post:
+      summary: Register couple and create wedding workspace
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password, password_confirmation]
+              properties:
+                name: { type: string, example: "Sokha & Bopha" }
+                email: { type: string, example: "couple@theapka.com" }
+                phone: { type: string, example: "+85512000003" }
+                password: { type: string, example: "Password123!" }
+                password_confirmation: { type: string, example: "Password123!" }
+                wedding_title: { type: string, example: "Sokha and Bopha Wedding" }
+                wedding_date: { type: string, format: date, example: "2026-11-20" }
+      responses:
+        201:
+          description: Registered and workspace provisioned
+        422:
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user, role, and permissions
+      security: [{ SanctumAuth: [] }]
+      tags: [Auth]
+      responses:
+        200:
+          description: Current user profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+
+  /user/dashboard:
+    get:
+      summary: Couple wedding dashboard stats
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Dashboard]
+      responses:
+        200:
+          description: Aggregated stats
+
+  /user/wedding:
+    get:
+      summary: Get current wedding profile
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Wedding]
+      responses:
+        200:
+          description: Wedding details
+    put:
+      summary: Update wedding profile and details
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Wedding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                wedding_date: { type: string, format: date }
+                venue_name: { type: string }
+                venue_address: { type: string }
+                details:
+                  type: object
+                  properties:
+                    groom_name: { type: string }
+                    bride_name: { type: string }
+      responses:
+        200:
+          description: Updated successfully
+
+  /user/guests:
+    get:
+      summary: List wedding guests (scoped by WeddingScope)
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Guests]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        200:
+          description: Guest list
+    post:
+      summary: Add a new guest
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Guests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                side: { type: string, enum: [groom, bride, mutual] }
+                seats: { type: integer, default: 1 }
+                group_id: { type: integer }
+      responses:
+        201:
+          description: Guest created
+
+  /user/guests/import/preview:
+    post:
+      summary: Preview CSV guest import
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Guests]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        200:
+          description: Preview rows with validation and duplicates check
+
+  /user/guests/import/commit:
+    post:
+      summary: Commit validated CSV rows
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Guests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows]
+              properties:
+                rows:
+                  type: array
+                  items:
+                    type: object
+                    required: [name]
+      responses:
+        200:
+          description: Imported guest count
+
+  /user/gifts:
+    get:
+      summary: List gift ledger entries (append-only)
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Gift Ledger]
+      responses:
+        200:
+          description: Gift records
+    post:
+      summary: Record gift or correction (Idempotent on client_uuid)
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Gift Ledger]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_uuid, giver_name, amount, currency]
+              properties:
+                client_uuid: { type: string, format: uuid, example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d" }
+                giver_name: { type: string, example: "Chhom Nimol" }
+                amount: { type: number, example: 100.00 }
+                currency: { type: string, enum: [KHR, USD], example: "USD" }
+                method: { type: string, example: "cash" }
+                entry_type: { type: string, enum: [gift, correction], default: "gift" }
+                corrects_id: { type: integer, nullable: true }
+                guest_id: { type: integer, nullable: true }
+      responses:
+        200:
+          description: Returned existing record if client_uuid already recorded (idempotent)
+        201:
+          description: Created new gift record
+
+  /user/gifts/summary:
+    get:
+      summary: Total gift sums strictly separated by KHR and USD
+      security: [{ SanctumAuth: [] }]
+      tags: [Couple / Gift Ledger]
+      responses:
+        200:
+          description: Gift totals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/GiftSummary' }
+
+  /public/invitation/{slug}:
+    get:
+      summary: View generic public invitation (no auth)
+      tags: [Public]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Invitation content
+
+  /public/invitation/{slug}/{token}:
+    get:
+      summary: View personalized invitation for guest token (tracks view and opened_at)
+      tags: [Public]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Personalized invitation
+
+  /public/invitation/{token}/rsvp:
+    post:
+      summary: Submit guest RSVP (validates attending_count <= seats)
+      tags: [Public]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, attending_count]
+              properties:
+                status: { type: string, enum: [attending, declined, maybe] }
+                attending_count: { type: integer, minimum: 0 }
+                dietary_requirements: { type: string }
+                notes: { type: string }
+      responses:
+        201:
+          description: RSVP recorded
+
+  /public/invitation/{token}/wish:
+    post:
+      summary: Submit wedding wish
+      tags: [Public]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sender_name, message]
+              properties:
+                sender_name: { type: string }
+                message: { type: string }
+      responses:
+        201:
+          description: Wish submitted
+
+  /public/invitation/{slug}/wishes:
+    get:
+      summary: List visible approved wishes for wedding
+      tags: [Public]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        200:
+          description: Visible wishes list

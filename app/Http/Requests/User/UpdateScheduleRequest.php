@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Requests\User;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdateScheduleRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'start_time' => ['sometimes', 'required', 'string', 'max:30'],
+            'end_time' => ['nullable', 'string', 'max:30'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'order' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+}
