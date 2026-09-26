@@ -23,6 +23,7 @@ class UpdateGuestRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'side' => ['sometimes', 'required', 'string', 'in:groom,bride,mutual'],
             'seats' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'sent_at' => ['nullable'],
             'notes' => ['nullable', 'string'],
         ];
     }

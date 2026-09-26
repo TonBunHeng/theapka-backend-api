@@ -125,3 +125,15 @@ test('user can logout and token is revoked', function () {
 
     expect($user->tokens()->count())->toBe(0);
 });
+
+test('root endpoint renders welcome page for browser and json for api requests', function () {
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('TheapKa Online');
+
+    $this->getJson('/')
+        ->assertOk()
+        ->assertJson([
+            'status' => 'operational',
+        ]);
+});

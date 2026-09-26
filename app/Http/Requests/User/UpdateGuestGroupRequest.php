@@ -18,6 +18,7 @@ class UpdateGuestGroupRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'color' => ['nullable', 'string', 'max:50'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
     }

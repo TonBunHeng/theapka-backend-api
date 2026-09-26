@@ -14,12 +14,16 @@ class GuestGroupResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $count = $this->guests_count ?? ($this->relationLoaded('guests') ? $this->guests->count() : $this->guests()->count());
+
         return [
             'id' => $this->id,
             'wedding_id' => $this->wedding_id,
             'name' => $this->name,
+            'color' => $this->color ?? '#8B1E3F',
             'order' => (int) $this->order,
-            'guests_count' => $this->guests_count ?? $this->whenLoaded('guests', fn () => $this->guests->count()),
+            'count' => (int) $count,
+            'guests_count' => (int) $count,
         ];
     }
 }

@@ -18,11 +18,28 @@ class UpdateWeddingRequest extends FormRequest
     {
         $details = $this->input('details', []);
 
+        $customFields = $details['custom_fields'] ?? [];
+        if (! is_array($customFields)) {
+            $customFields = [];
+        }
+
         if ($this->has('groom_name_kh') || $this->has('groom_name_en') || $this->has('groom_name')) {
-            $details['groom_name'] = $this->input('groom_name_kh') ?: $this->input('groom_name_en') ?: $this->input('groom_name');
+            $groomKh = $this->input('groom_name_kh');
+            $groomEn = $this->input('groom_name_en');
+            if ($groomKh) $customFields['groom_name_kh'] = $groomKh;
+            if ($groomEn) $customFields['groom_name_en'] = $groomEn;
+            $details['groom_name'] = $groomKh ?: ($this->input('groom_name') ?: $groomEn);
         }
         if ($this->has('bride_name_kh') || $this->has('bride_name_en') || $this->has('bride_name')) {
-            $details['bride_name'] = $this->input('bride_name_kh') ?: $this->input('bride_name_en') ?: $this->input('bride_name');
+            $brideKh = $this->input('bride_name_kh');
+            $brideEn = $this->input('bride_name_en');
+            if ($brideKh) $customFields['bride_name_kh'] = $brideKh;
+            if ($brideEn) $customFields['bride_name_en'] = $brideEn;
+            $details['bride_name'] = $brideKh ?: ($this->input('bride_name') ?: $brideEn);
+        }
+
+        if (! empty($customFields)) {
+            $details['custom_fields'] = $customFields;
         }
         if ($this->has('groom_father_kh') || $this->has('groom_mother_kh')) {
             $parents = array_filter([$this->input('groom_father_kh'), $this->input('groom_mother_kh')]);

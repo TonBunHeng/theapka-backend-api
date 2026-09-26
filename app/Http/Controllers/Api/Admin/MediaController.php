@@ -21,15 +21,20 @@ class MediaController extends Controller
         if ($type = $request->query('type')) {
             $query->where('type', $type);
         }
+        if ($mime = $request->query('mime')) {
+            $query->where('mime_type', 'like', "%{$mime}%");
+        }
         if ($collection = $request->query('collection')) {
             $query->where('collection', $collection);
         }
 
+        $totalStorage = (int) Media::withoutGlobalScopes()->sum('file_size');
         $perPage = min(100, max(1, (int) $request->query('per_page', 30)));
         $media = $query->latest()->paginate($perPage);
 
         return response()->json([
             'data' => MediaResource::collection($media->items()),
+            'total_storage_bytes' => $totalStorage,
             'meta' => [
                 'page' => $media->currentPage(),
                 'per_page' => $media->perPage(),

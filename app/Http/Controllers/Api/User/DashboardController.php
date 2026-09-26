@@ -52,15 +52,37 @@ class DashboardController extends Controller
             $daysLeft = (int) Carbon::now()->diffInDays(Carbon::parse($wedding->wedding_date), false);
         }
 
+        // Invitation sends & views
+        $guestIds = $wedding->guests()->pluck('id');
+        $invitedCount = \App\Models\InvitationSend::whereIn('guest_id', $guestIds)->whereNotNull('sent_at')->count();
+        $openedCount = \App\Models\InvitationSend::whereIn('guest_id', $guestIds)->whereNotNull('opened_at')->count();
+
         // Recent items
         $recentGifts = $wedding->giftRecords()->latest('recorded_at')->take(5)->get();
         $recentWishes = $wedding->wishes()->latest()->take(5)->get();
         $recentRsvps = $wedding->guests()->has('rsvps')->with('latestRsvp')->take(5)->get();
 
+        $stats = [
+            'total_guests' => $totalGuests,
+            'total_seats' => $totalSeats,
+            'invited' => $invitedCount,
+            'opened' => $openedCount,
+            'attending' => $attendingCount,
+            'declined' => $declinedCount,
+            'maybe' => $maybeCount,
+            'pending' => $pendingCount,
+            'gifts' => [
+                'total_khr' => $giftSummary['khr']['total'] ?? 0,
+                'total_usd' => $giftSummary['usd']['total'] ?? 0,
+                'count' => ($giftSummary['khr']['count'] ?? 0) + ($giftSummary['usd']['count'] ?? 0),
+            ],
+        ];
+
         return response()->json([
             'data' => [
                 'wedding' => new WeddingResource($wedding),
                 'days_left' => $daysLeft,
+                'stats' => $stats,
                 'guest_stats' => [
                     'total_guests' => $totalGuests,
                     'total_seats' => $totalSeats,

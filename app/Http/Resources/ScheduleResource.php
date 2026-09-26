@@ -22,6 +22,7 @@ class ScheduleResource extends JsonResource
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'location' => $this->location,
+            'venue' => $this->location,
             'order' => (int) $this->order,
             'created_at' => $this->created_at?->toISOString(),
         ];

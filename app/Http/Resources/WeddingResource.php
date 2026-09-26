@@ -28,21 +28,61 @@ class WeddingResource extends JsonResource
             'venue_map_url' => $this->venue_map_url,
             'timezone' => $this->timezone,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status,
+            'is_published' => ($this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status) === 'published',
             'cover_image_url' => $this->cover_image_url,
             'cover_photo' => $this->cover_image_url,
             'music_url' => $this->invitation?->music_url,
+            'template_config' => $this->invitation?->content,
             'user_id' => $this->owner_id,
             'user_name' => $this->owner?->name ?? 'Couple',
-            'groom_name' => $this->details?->groom_name ?? '',
-            'bride_name' => $this->details?->bride_name ?? '',
-            'groom_name_kh' => $this->details?->groom_name ?? '',
-            'groom_name_en' => $this->details?->groom_name ?? '',
-            'bride_name_kh' => $this->details?->bride_name ?? '',
-            'bride_name_en' => $this->details?->bride_name ?? '',
-            'groom_father_kh' => $this->details?->groom_parents ?? '',
-            'groom_mother_kh' => '',
-            'bride_father_kh' => $this->details?->bride_parents ?? '',
-            'bride_mother_kh' => '',
+            'groom_name' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['groom_name_kh'])) return $custom['groom_name_kh'];
+                $raw = (string) ($this->details?->groom_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[1]);
+                return $raw;
+            })(),
+            'bride_name' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['bride_name_kh'])) return $custom['bride_name_kh'];
+                $raw = (string) ($this->details?->bride_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[1]);
+                return $raw;
+            })(),
+            'groom_name_kh' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['groom_name_kh'])) return $custom['groom_name_kh'];
+                $raw = (string) ($this->details?->groom_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[1]);
+                return $raw;
+            })(),
+            'groom_name_en' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['groom_name_en'])) return $custom['groom_name_en'];
+                $raw = (string) ($this->details?->groom_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[2]);
+                return $raw;
+            })(),
+            'bride_name_kh' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['bride_name_kh'])) return $custom['bride_name_kh'];
+                $raw = (string) ($this->details?->bride_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[1]);
+                return $raw;
+            })(),
+            'bride_name_en' => (function () {
+                $custom = is_array($this->details?->custom_fields) ? $this->details->custom_fields : [];
+                if (! empty($custom['bride_name_en'])) return $custom['bride_name_en'];
+                $raw = (string) ($this->details?->bride_name ?? '');
+                if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[2]);
+                return $raw;
+            })(),
+            'groom_father_kh' => trim(explode('&', (string) $this->details?->groom_parents)[0] ?? ''),
+            'groom_mother_kh' => trim(explode('&', (string) $this->details?->groom_parents)[1] ?? ''),
+            'bride_father_kh' => trim(explode('&', (string) $this->details?->bride_parents)[0] ?? ''),
+            'bride_mother_kh' => trim(explode('&', (string) $this->details?->bride_parents)[1] ?? ''),
+            'groom_parents' => $this->details?->groom_parents ?? '',
+            'bride_parents' => $this->details?->bride_parents ?? '',
             'story' => $this->details?->story ?? '',
             'plan' => $this->activeSubscription?->plan?->slug ?? 'free',
             'guest_count' => $this->resource instanceof \App\Models\Wedding ? $this->resource->guests()->count() : 0,

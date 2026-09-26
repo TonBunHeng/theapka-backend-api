@@ -11,6 +11,13 @@ class UpdateScheduleRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('venue') && ! $this->has('location')) {
+            $this->merge(['location' => $this->input('venue')]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -22,6 +29,7 @@ class UpdateScheduleRequest extends FormRequest
             'start_time' => ['sometimes', 'required', 'string', 'max:30'],
             'end_time' => ['nullable', 'string', 'max:30'],
             'location' => ['nullable', 'string', 'max:255'],
+            'venue' => ['nullable', 'string', 'max:255'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
     }

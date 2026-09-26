@@ -30,6 +30,10 @@ class WishController extends Controller
             $wedding = Wedding::withoutGlobalScopes()->where('slug', $token)->first();
         }
 
+        if (! $wedding && ($slug = $request->input('slug', $request->query('slug')))) {
+            $wedding = Wedding::withoutGlobalScopes()->where('slug', $slug)->first();
+        }
+
         if (! $wedding) {
             return response()->json([
                 'message' => 'Invitation not found.',

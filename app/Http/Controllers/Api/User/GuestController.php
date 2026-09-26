@@ -101,7 +101,25 @@ class GuestController extends Controller
     public function update(UpdateGuestRequest $request, int $id): JsonResponse
     {
         $guest = Guest::findOrFail($id);
-        $guest->update($request->validated());
+        $data = $request->validated();
+        $sentAt = $data['sent_at'] ?? null;
+        unset($data['sent_at']);
+
+        $guest->update($data);
+
+        if ($request->has('sent_at')) {
+            $invitation = $guest->wedding?->invitation;
+            if ($invitation) {
+                \App\Models\InvitationSend::updateOrCreate(
+                    ['invitation_id' => $invitation->id, 'guest_id' => $guest->id, 'channel' => 'manual'],
+                    [
+                        'sent_at' => $sentAt ? now() : null,
+                        'sent_by' => $request->user()->id,
+                    ]
+                );
+            }
+        }
+
         $guest->load(['group', 'latestRsvp', 'latestSend']);
 
         return response()->json([

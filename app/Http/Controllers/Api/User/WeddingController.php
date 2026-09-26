@@ -46,6 +46,12 @@ class WeddingController extends Controller
             ], 404);
         }
 
+        if ($wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Editing is disabled.',
+            ], 403);
+        }
+
         DB::transaction(function () use ($wedding, $request) {
             $wedding->update($request->safe()->only([
                 'title',

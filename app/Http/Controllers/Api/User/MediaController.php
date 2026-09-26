@@ -20,11 +20,28 @@ class MediaController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $collection = $request->query('collection', 'gallery');
+        $wedding = $request->user()->currentWedding();
 
-        $media = Media::where('collection', $collection)
-            ->latest()
-            ->paginate((int) $request->query('per_page', 30));
+        if (! $wedding) {
+            return response()->json([
+                'data' => [],
+                'meta' => [
+                    'page' => 1,
+                    'per_page' => 30,
+                    'total' => 0,
+                    'last_page' => 1,
+                ],
+            ]);
+        }
+
+        $query = Media::where('wedding_id', $wedding->id)->with('wedding');
+
+        $collection = $request->query('collection');
+        if ($collection && $collection !== 'all') {
+            $query->where('collection', $collection);
+        }
+
+        $media = $query->latest()->paginate((int) $request->query('per_page', 30));
 
         return response()->json([
             'data' => MediaResource::collection($media->items()),
@@ -38,7 +55,7 @@ class MediaController extends Controller
     }
 
     /**
-     * Upload an image, strip EXIF, generate thumbnail variant, and save record.
+     * Upload an image (file or base64 data url), strip EXIF, generate thumbnail variant, and save record.
      */
     public function store(StoreMediaRequest $request): JsonResponse
     {
@@ -50,39 +67,84 @@ class MediaController extends Controller
             ], 404);
         }
 
-        $file = $request->file('file');
+        if ($wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Media management is disabled.',
+            ], 403);
+        }
+
+        // Support updating existing photo as cover (setCoverMutation)
+        if ($id = $request->input('id')) {
+            $existing = Media::where('wedding_id', $wedding->id)->find($id);
+            if ($existing) {
+                if ($request->boolean('is_cover')) {
+                    $wedding->update(['cover_image_url' => $existing->url]);
+                }
+                $existing->load('wedding');
+                return response()->json([
+                    'data' => new MediaResource($existing),
+                ]);
+            }
+        }
+
         $collection = $request->input('collection', 'gallery');
         $disk = 'public';
-
-        $extension = $file->getClientOriginalExtension() ?: 'jpg';
-        $fileName = Str::uuid() . '.' . $extension;
-        $thumbName = Str::uuid() . '-thumb.' . $extension;
-
         $dir = "weddings/{$wedding->id}/media";
-        $filePath = "{$dir}/{$fileName}";
-        $thumbPath = "{$dir}/{$thumbName}";
 
         $dimensions = null;
+        $thumbPath = null;
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $extension = $file->getClientOriginalExtension() ?: 'jpg';
+            $fileName = Str::uuid() . '.' . $extension;
+            $thumbName = Str::uuid() . '-thumb.' . $extension;
+            $filePath = "{$dir}/{$fileName}";
+            $thumbTarget = "{$dir}/{$thumbName}";
+            $originalName = $file->getClientOriginalName();
+            $mimeType = $file->getMimeType() ?: 'image/jpeg';
+            $fileSize = $file->getSize();
+            $rawContent = file_get_contents($file->getRealPath());
+        } else {
+            $url = (string) $request->input('url');
+            if (preg_match('/^data:image\/(\w+);base64,/', $url, $matches)) {
+                $ext = strtolower($matches[1]);
+                $extension = ($ext === 'jpeg') ? 'jpg' : $ext;
+                $rawContent = base64_decode(substr($url, strpos($url, ',') + 1));
+                $mimeType = 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
+            } else {
+                $extension = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                $rawContent = @file_get_contents($url) ?: '';
+                $mimeType = 'image/jpeg';
+            }
+            $fileName = Str::uuid() . '.' . $extension;
+            $thumbName = Str::uuid() . '-thumb.' . $extension;
+            $filePath = "{$dir}/{$fileName}";
+            $thumbTarget = "{$dir}/{$thumbName}";
+            $originalName = $fileName;
+            $fileSize = strlen($rawContent);
+        }
 
         try {
-            // Read with Intervention Image (v3) to strip EXIF and process dimensions
-            $image = Image::read($file);
+            // Process with Intervention Image
+            $image = Image::read($rawContent);
             $dimensions = [
                 'width' => $image->width(),
                 'height' => $image->height(),
             ];
 
-            // Save cleaned file (stripped of EXIF metadata)
+            // Save cleaned file
             $encodedOriginal = $image->encode();
             Storage::disk($disk)->put($filePath, (string) $encodedOriginal);
 
             // Generate thumbnail (max 300x300)
-            $thumb = Image::read($file)->cover(300, 300);
+            $thumb = Image::read($rawContent)->cover(300, 300);
             $encodedThumb = $thumb->encode();
-            Storage::disk($disk)->put($thumbPath, (string) $encodedThumb);
+            Storage::disk($disk)->put($thumbTarget, (string) $encodedThumb);
+            $thumbPath = $thumbTarget;
         } catch (Throwable $e) {
-            // Fallback: direct storage if image driver encounters issue
-            $filePath = $file->storeAs($dir, $fileName, $disk);
+            // Direct raw storage fallback
+            Storage::disk($disk)->put($filePath, $rawContent);
             $thumbPath = null;
         }
 
@@ -92,13 +154,19 @@ class MediaController extends Controller
             'disk' => $disk,
             'file_path' => $filePath,
             'thumbnail_path' => $thumbPath,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType() ?: 'image/jpeg',
-            'file_size' => $file->getSize(),
+            'file_name' => $originalName,
+            'mime_type' => $mimeType,
+            'file_size' => $fileSize,
             'dimensions' => $dimensions,
             'type' => 'image',
             'collection' => $collection,
         ]);
+
+        if ($request->boolean('is_cover') || $collection === 'cover') {
+            $wedding->update(['cover_image_url' => $media->url]);
+        }
+
+        $media->load('wedding');
 
         return response()->json([
             'data' => new MediaResource($media),
@@ -108,9 +176,17 @@ class MediaController extends Controller
     /**
      * Delete a media item.
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $media = Media::findOrFail($id);
+        $wedding = $request->user()->currentWedding();
+
+        if ($wedding && $wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Media management is disabled.',
+            ], 403);
+        }
+
+        $media = Media::where('wedding_id', $wedding?->id)->findOrFail($id);
 
         if ($media->file_path && Storage::disk($media->disk)->exists($media->file_path)) {
             Storage::disk($media->disk)->delete($media->file_path);

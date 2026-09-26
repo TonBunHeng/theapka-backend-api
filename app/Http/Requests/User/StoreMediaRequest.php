@@ -17,7 +17,10 @@ class StoreMediaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'], // 10MB max
+            'file' => ['required_without_all:url,id', 'nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
+            'url' => ['required_without_all:file,id', 'nullable', 'string'],
+            'id' => ['nullable', 'integer'],
+            'is_cover' => ['nullable', 'boolean'],
             'collection' => ['nullable', 'string', 'in:gallery,cover,avatar,general'],
         ];
     }

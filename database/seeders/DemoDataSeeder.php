@@ -112,16 +112,22 @@ class DemoDataSeeder extends Seeder
         WeddingDetail::firstOrCreate(
             ['wedding_id' => $wedding->id],
             [
-                'groom_name' => 'ចាន់ សុខា (Chan Sokha)',
+                'groom_name' => 'ចាន់ សុខា',
                 'groom_title' => 'កូនកំលោះ',
                 'groom_parents' => 'លោក ចាន់ សុវណ្ណ & លោកស្រី គង់ ផល្លី',
-                'bride_name' => 'កែវ បុប្ផា (Keo Bopha)',
+                'bride_name' => 'កែវ បុប្ផា',
                 'bride_title' => 'កូនក្រមុំ',
                 'bride_parents' => 'លោក កែវ វិសាល & លោកស្រី អ៊ុំ ធីតា',
                 'story' => 'ស្នេហាដែលបានចាប់ផ្តើមតាំងពីថ្នាក់សាកលវិទ្យាល័យ រហូតមកដល់ថ្ងៃជួបជុំគ្រួសារដ៏មានសេចក្តីសុខនេះ។',
                 'welcome_message' => 'សូមគោរពអញ្ជើញឯកឧត្តម លោកជំទាវ លោក លោកស្រី អ្នកនាងកញ្ញា ចូលរួមជាអធិបតី និងប្រសិទ្ធពរជ័យក្នុងពិធីមង្គលការយើងខ្ញុំ។',
                 'dress_code' => 'Traditional Khmer Attire / Formal Evening Suit',
                 'contact_phones' => ['+855 12 345 678', '+855 98 765 432'],
+                'custom_fields' => [
+                    'groom_name_kh' => 'ចាន់ សុខា',
+                    'groom_name_en' => 'Chan Sokha',
+                    'bride_name_kh' => 'កែវ បុប្ផា',
+                    'bride_name_en' => 'Keo Bopha',
+                ],
             ]
         );
 

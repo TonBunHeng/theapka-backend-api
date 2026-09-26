@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'log.admin' => LogAdminAction::class,
             'maintenance.check' => CheckMaintenanceMode::class,
+            'wedding.not_suspended' => \App\Http\Middleware\EnsureWeddingNotSuspended::class,
         ]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => null);

@@ -38,7 +38,7 @@ class InvitationController extends Controller
             ]
         );
 
-        $invitation->load('template');
+        $invitation->load(['template', 'wedding.details', 'wedding.owner']);
 
         return response()->json([
             'data' => new InvitationResource($invitation),
@@ -58,6 +58,12 @@ class InvitationController extends Controller
             ], 404);
         }
 
+        if ($wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Invitation changes are disabled.',
+            ], 403);
+        }
+
         $invitation = $wedding->invitation()->firstOrCreate(
             ['wedding_id' => $wedding->id],
             [
@@ -68,7 +74,7 @@ class InvitationController extends Controller
         );
 
         $invitation->update($request->validated());
-        $invitation->load('template');
+        $invitation->load(['template', 'wedding.details', 'wedding.owner']);
 
         return response()->json([
             'data' => new InvitationResource($invitation),
@@ -88,8 +94,14 @@ class InvitationController extends Controller
             ], 404);
         }
 
+        if ($wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Publishing is disabled.',
+            ], 403);
+        }
+
         $invitation = $this->invitationService->publish($wedding);
-        $invitation->load('template');
+        $invitation->load(['template', 'wedding.details', 'wedding.owner']);
 
         return response()->json([
             'data' => new InvitationResource($invitation),
@@ -109,8 +121,14 @@ class InvitationController extends Controller
             ], 404);
         }
 
+        if ($wedding->status === \App\Enums\WeddingStatus::SUSPENDED) {
+            return response()->json([
+                'message' => 'This wedding has been suspended by administration. Publishing is disabled.',
+            ], 403);
+        }
+
         $invitation = $this->invitationService->unpublish($wedding);
-        $invitation->load('template');
+        $invitation->load(['template', 'wedding.details', 'wedding.owner']);
 
         return response()->json([
             'data' => new InvitationResource($invitation),

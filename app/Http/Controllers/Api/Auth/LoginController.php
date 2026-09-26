@@ -47,14 +47,7 @@ class LoginController extends Controller
                 'user' => new UserResource($user),
                 'role' => $role,
                 'permissions' => $permissions,
-                'wedding' => $wedding ? [
-                    'id' => $wedding->id,
-                    'title' => $wedding->title,
-                    'slug' => $wedding->slug,
-                    'wedding_date' => $wedding->wedding_date instanceof \DateTimeInterface ? $wedding->wedding_date->format('Y-m-d') : ($wedding->wedding_date ? (string) $wedding->wedding_date : null),
-                    'venue_name' => $wedding->venue_name,
-                    'status' => $wedding->status instanceof \BackedEnum ? $wedding->status->value : (string) $wedding->status,
-                ] : null,
+                'wedding' => $wedding ? new \App\Http\Resources\WeddingResource($wedding->loadMissing(['details', 'invitation'])) : null,
             ],
         ]);
     }
@@ -81,14 +74,7 @@ class LoginController extends Controller
                 ],
                 'role' => $role,
                 'permissions' => $permissions,
-                'wedding' => $wedding ? [
-                    'id' => $wedding->id,
-                    'title' => $wedding->title,
-                    'slug' => $wedding->slug,
-                    'wedding_date' => $wedding->wedding_date instanceof \DateTimeInterface ? $wedding->wedding_date->format('Y-m-d') : ($wedding->wedding_date ? (string) $wedding->wedding_date : null),
-                    'venue_name' => $wedding->venue_name,
-                    'status' => $wedding->status instanceof \BackedEnum ? $wedding->status->value : (string) $wedding->status,
-                ] : null,
+                'wedding' => $wedding ? new \App\Http\Resources\WeddingResource($wedding->loadMissing(['details', 'invitation'])) : null,
             ],
         ]);
     }

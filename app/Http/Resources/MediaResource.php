@@ -25,6 +25,7 @@ class MediaResource extends JsonResource
             'dimensions' => $this->dimensions,
             'type' => $this->type,
             'collection' => $this->collection,
+            'is_cover' => (bool) ($this->wedding && $this->wedding->cover_image_url === $this->url),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

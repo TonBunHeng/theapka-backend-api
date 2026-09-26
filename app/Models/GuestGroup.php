@@ -15,6 +15,7 @@ class GuestGroup extends Model
     protected $fillable = [
         'wedding_id',
         'name',
+        'color',
         'order',
     ];
 

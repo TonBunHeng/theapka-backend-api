@@ -151,9 +151,9 @@ class GuestImportService
             foreach ($rows as $row) {
                 $data = $row['data'] ?? $row;
 
-                $groupId = null;
-                $groupName = trim($data['group_name'] ?? '');
-                if (! empty($groupName)) {
+                $groupId = ! empty($data['group_id']) ? (int) $data['group_id'] : null;
+                $groupName = trim((string) ($data['group_name'] ?? $data['group'] ?? ''));
+                if (! $groupId && ! empty($groupName)) {
                     if (! isset($groupsCache[$groupName])) {
                         $group = GuestGroup::withoutGlobalScopes()
                             ->firstOrCreate(

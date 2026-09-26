@@ -23,6 +23,8 @@ class InvitationResource extends JsonResource
             'title' => $this->title,
             'custom_css' => $this->custom_css,
             'content' => $this->content ?? (object) [],
+            'template_config' => $this->content ?? (object) [],
+            'wedding' => $this->wedding ? new WeddingResource($this->wedding) : null,
             'music_url' => $this->music_url,
             'view_count' => (int) $this->view_count,
             'status' => $this->status,
