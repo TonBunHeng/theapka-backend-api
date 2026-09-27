@@ -137,3 +137,25 @@ test('root endpoint renders welcome page for browser and json for api requests',
             'status' => 'operational',
         ]);
 });
+
+test('user can connect with google account and register or login', function () {
+    // 1. New user registration via Google
+    $res = $this->postJson('/api/auth/google', [
+        'email' => 'googlecouple@example.com',
+        'name' => 'Google Couple',
+        'avatar_url' => 'https://lh3.googleusercontent.com/a/photo.jpg',
+    ])->assertOk();
+
+    expect($res->json('data.token'))->not->toBeEmpty()
+        ->and($res->json('data.user.email'))->toBe('googlecouple@example.com')
+        ->and($res->json('data.role'))->toBe(RoleName::USER->value);
+
+    $this->assertDatabaseHas('users', ['email' => 'googlecouple@example.com']);
+
+    // 2. Existing user login via Google
+    $res2 = $this->postJson('/api/auth/google', [
+        'email' => 'googlecouple@example.com',
+    ])->assertOk();
+
+    expect($res2->json('data.user.email'))->toBe('googlecouple@example.com');
+});

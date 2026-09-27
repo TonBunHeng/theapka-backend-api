@@ -22,6 +22,7 @@ Route::middleware(['auth:sanctum', 'role:user', 'wedding.not_suspended'])->prefi
     Route::get('/wedding', [WeddingController::class, 'show']);
     Route::post('/wedding', [WeddingController::class, 'store']);
     Route::put('/wedding', [WeddingController::class, 'update']);
+    Route::post('/resolve-map-url', [WeddingController::class, 'resolveMapUrl']);
 
     // Schedules
     Route::get('/schedules', [ScheduleController::class, 'index']);

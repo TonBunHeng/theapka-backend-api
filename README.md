@@ -161,10 +161,6 @@ Base URL: `/api`
 
 ### 4.2 Installation
 ```bash
-# Clone and enter directory
-git clone https://github.com/theapka/theapka-api.git
-cd theapka-api
-
 # Install dependencies
 composer install
 

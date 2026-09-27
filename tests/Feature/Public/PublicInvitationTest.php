@@ -216,3 +216,23 @@ test('public invitation endpoint never leaks private guest contacts or gift ledg
         ->and($raw)->not->toContain('Rich Uncle')
         ->and($raw)->not->toContain('5000');
 });
+
+test('new wedding without pre-existing invitation can be previewed/viewed immediately', function () {
+    $couple = User::factory()->asUser()->create();
+    $wedding = Wedding::factory()->create([
+        'owner_id' => $couple->id,
+        'slug' => 'new-couple-preview-test',
+        'title' => 'New Couple Wedding',
+        'venue_map_url' => 'https://maps.google.com/?q=11.6685,104.9452',
+        'settings' => ['lat' => 11.6685, 'lng' => 104.9452],
+    ]);
+
+    // Request public invitation immediately without manual invitation creation
+    $response = $this->getJson('/api/public/invitation/new-couple-preview-test')
+        ->assertOk();
+
+    expect($response->json('data.wedding.slug'))->toBe('new-couple-preview-test')
+        ->and($response->json('data.wedding.map_url'))->toBe('https://maps.google.com/?q=11.6685,104.9452')
+        ->and($response->json('data.wedding.lat'))->toBe(11.6685)
+        ->and($response->json('data.wedding.lng'))->toBe(104.9452);
+});

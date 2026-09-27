@@ -26,6 +26,9 @@ class WeddingResource extends JsonResource
             'venue_name' => $this->venue_name,
             'venue_address' => $this->venue_address,
             'venue_map_url' => $this->venue_map_url,
+            'map_url' => $this->venue_map_url,
+            'lat' => is_array($this->settings) && isset($this->settings['lat']) ? (float) $this->settings['lat'] : 11.6685,
+            'lng' => is_array($this->settings) && isset($this->settings['lng']) ? (float) $this->settings['lng'] : 104.9452,
             'timezone' => $this->timezone,
             'status' => $this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status,
             'is_published' => ($this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status) === 'published',
@@ -61,6 +64,12 @@ class WeddingResource extends JsonResource
                 if (! empty($custom['groom_name_en'])) return $custom['groom_name_en'];
                 $raw = (string) ($this->details?->groom_name ?? '');
                 if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[2]);
+                if (! preg_match('/[a-zA-Z]/', $raw)) {
+                    if ($this->slug && preg_match('/^([a-z0-9-]+?)-([a-z0-9-]+?)-wedding$/i', $this->slug, $sm)) {
+                        return ucwords(str_replace('-', ' ', $sm[1]));
+                    }
+                    return '';
+                }
                 return $raw;
             })(),
             'bride_name_kh' => (function () {
@@ -75,6 +84,12 @@ class WeddingResource extends JsonResource
                 if (! empty($custom['bride_name_en'])) return $custom['bride_name_en'];
                 $raw = (string) ($this->details?->bride_name ?? '');
                 if (preg_match('/^(.*?)\s*\((.*?)\)$/u', $raw, $m)) return trim($m[2]);
+                if (! preg_match('/[a-zA-Z]/', $raw)) {
+                    if ($this->slug && preg_match('/^([a-z0-9-]+?)-([a-z0-9-]+?)-wedding$/i', $this->slug, $sm)) {
+                        return ucwords(str_replace('-', ' ', $sm[2]));
+                    }
+                    return '';
+                }
                 return $raw;
             })(),
             'groom_father_kh' => trim(explode('&', (string) $this->details?->groom_parents)[0] ?? ''),

@@ -23,6 +23,11 @@ class UpdateWeddingRequest extends FormRequest
             $customFields = [];
         }
 
+        $existingCustom = $this->user()?->currentWedding()?->details?->custom_fields;
+        if (is_array($existingCustom)) {
+            $customFields = array_merge($existingCustom, $customFields);
+        }
+
         if ($this->has('groom_name_kh') || $this->has('groom_name_en') || $this->has('groom_name')) {
             $groomKh = $this->input('groom_name_kh');
             $groomEn = $this->input('groom_name_en');
@@ -64,6 +69,19 @@ class UpdateWeddingRequest extends FormRequest
         if ($this->has('cover_photo') && ! $this->has('cover_image_url')) {
             $merge['cover_image_url'] = $this->input('cover_photo');
         }
+        if ($this->has('map_url') && ! $this->has('venue_map_url')) {
+            $merge['venue_map_url'] = $this->input('map_url');
+        }
+        if ($this->has('lat') || $this->has('lng')) {
+            $existingSettings = $this->user()?->currentWedding()?->settings;
+            $settings = is_array($existingSettings) ? $existingSettings : [];
+            if ($this->has('settings') && is_array($this->input('settings'))) {
+                $settings = array_merge($settings, $this->input('settings'));
+            }
+            if ($this->has('lat')) $settings['lat'] = $this->input('lat');
+            if ($this->has('lng')) $settings['lng'] = $this->input('lng');
+            $merge['settings'] = $settings;
+        }
 
         if (! empty($merge)) {
             $this->merge($merge);
@@ -81,7 +99,10 @@ class UpdateWeddingRequest extends FormRequest
             'wedding_date' => ['nullable', 'date'],
             'venue_name' => ['nullable', 'string', 'max:255'],
             'venue_address' => ['nullable', 'string'],
-            'venue_map_url' => ['nullable', 'string', 'url'],
+            'venue_map_url' => ['nullable', 'string'],
+            'map_url' => ['nullable', 'string'],
+            'lat' => ['nullable', 'numeric'],
+            'lng' => ['nullable', 'numeric'],
             'timezone' => ['nullable', 'string', 'max:50'],
             'cover_image_url' => ['nullable', 'string'],
             'cover_photo' => ['nullable', 'string'],

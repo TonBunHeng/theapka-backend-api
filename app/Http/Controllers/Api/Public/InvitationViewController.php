@@ -35,9 +35,19 @@ class InvitationViewController extends Controller
 
         $invitation = $wedding->invitation;
         if (! ($invitation instanceof Invitation)) {
-            return response()->json([
-                'message' => 'Invitation not configured yet.',
-            ], 404);
+            $defaultTemplate = \App\Models\Template::where('is_active', true)->first();
+            $invitation = $wedding->invitation()->firstOrCreate(
+                ['wedding_id' => $wedding->id],
+                [
+                    'slug' => $wedding->slug,
+                    'title' => $wedding->title,
+                    'status' => 'draft',
+                    'template_id' => $defaultTemplate?->id,
+                    'content' => $defaultTemplate?->config,
+                    'music_url' => '/music/ភ្ជាប់និស្ស័យ.mp3',
+                ]
+            );
+            $invitation->load('template');
         }
 
         $guestData = null;
@@ -103,7 +113,13 @@ class InvitationViewController extends Controller
                 $groomEn = $groomEn ?: trim($m[2]);
             } else {
                 $groomKh = $groomKh ?: $rawGroom;
-                $groomEn = $groomEn ?: $rawGroom;
+                if (! $groomEn) {
+                    if (preg_match('/[a-zA-Z]/', $rawGroom)) {
+                        $groomEn = $rawGroom;
+                    } elseif ($wedding->slug && preg_match('/^([a-z0-9-]+?)-([a-z0-9-]+?)-wedding$/i', $wedding->slug, $sm)) {
+                        $groomEn = ucwords(str_replace('-', ' ', $sm[1]));
+                    }
+                }
             }
         }
 
@@ -115,7 +131,13 @@ class InvitationViewController extends Controller
                 $brideEn = $brideEn ?: trim($m[2]);
             } else {
                 $brideKh = $brideKh ?: $rawBride;
-                $brideEn = $brideEn ?: $rawBride;
+                if (! $brideEn) {
+                    if (preg_match('/[a-zA-Z]/', $rawBride)) {
+                        $brideEn = $rawBride;
+                    } elseif ($wedding->slug && preg_match('/^([a-z0-9-]+?)-([a-z0-9-]+?)-wedding$/i', $wedding->slug, $sm)) {
+                        $brideEn = ucwords(str_replace('-', ' ', $sm[2]));
+                    }
+                }
             }
         }
 
@@ -127,6 +149,9 @@ class InvitationViewController extends Controller
             'venue_name' => $wedding->venue_name,
             'venue_address' => $wedding->venue_address,
             'venue_map_url' => $wedding->venue_map_url,
+            'map_url' => $wedding->venue_map_url,
+            'lat' => is_array($wedding->settings) && isset($wedding->settings['lat']) ? (float) $wedding->settings['lat'] : 11.6685,
+            'lng' => is_array($wedding->settings) && isset($wedding->settings['lng']) ? (float) $wedding->settings['lng'] : 104.9452,
             'timezone' => $wedding->timezone,
             'cover_image_url' => $wedding->cover_image_url,
             'cover_photo' => $wedding->cover_image_url,
